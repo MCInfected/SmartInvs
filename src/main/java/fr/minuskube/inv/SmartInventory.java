@@ -55,19 +55,19 @@ public class SmartInventory {
         this.manager = manager;
     }
 
-    public Inventory open(Player player) {	
-        return open(player, 0, Collections.EMPTY_MAP);	
-    }	
-    
-    public Inventory open(Player player, int page) {	
-        return open(player, page, Collections.EMPTY_MAP);	
-    }	
-    
-    public Inventory open(Player player, Map<String, Object> properties) {	
-        return open(player, 0, properties);	
-    }	
+    public Inventory open(Player player) {
+        return open(player, 0, Collections.EMPTY_MAP);
+    }
 
-    public Inventory open(Player player, int page, Map<String, Object> properties) {	
+    public Inventory open(Player player, int page) {
+        return open(player, page, Collections.EMPTY_MAP);
+    }
+
+    public Inventory open(Player player, Map<String, Object> properties) {
+        return open(player, 0, properties);
+    }
+
+    public Inventory open(Player player, int page, Map<String, Object> properties) {
         Optional<SmartInventory> oldInv = this.manager.getInventory(player);
 
         oldInv.ifPresent(inv -> {
@@ -79,21 +79,32 @@ public class SmartInventory {
             this.manager.setInventory(player, null);
         });
 
-        InventoryContents contents = new InventoryContents.Impl(this, player);
+        InventoryContents contents = new InventoryContents.Impl(this, player.getUniqueId());
         contents.pagination().page(page);
         properties.forEach(contents::setProperty);
-        
+
         this.manager.setContents(player, contents);
-        this.provider.init(player, contents);
 
-        InventoryOpener opener = this.manager.findOpener(type)
-                .orElseThrow(() -> new IllegalStateException("No opener found for the inventory type " + type.name()));
-        Inventory handle = opener.open(this, player);
+        try {
+            this.provider.init(player, contents);
 
-        this.manager.setInventory(player, this);
-        this.manager.scheduleUpdateTask(player, this);
-        
-        return handle;
+            // If the current inventory has been closed or replaced within the init method, returns
+            if (!this.manager.getContents(player).equals(Optional.of(contents))) {
+                return null;
+            }
+
+            InventoryOpener opener = this.manager.findOpener(type)
+                    .orElseThrow(() -> new IllegalStateException("No opener found for the inventory type " + type.name()));
+            Inventory handle = opener.open(this, player);
+
+            this.manager.setInventory(player, this);
+            this.manager.scheduleUpdateTask(player, this);
+
+            return handle;
+        } catch (Exception e) {
+            this.manager.handleInventoryOpenError(this, player, e);
+            return null;
+        }
     }
 
     public void close(Player player) {
@@ -127,7 +138,7 @@ public class SmartInventory {
 
     public boolean isCloseable() { return closeable; }
     public void setCloseable(boolean closeable) { this.closeable = closeable; }
-    
+
     public int getUpdateFrequency() { return updateFrequency; }
 
     public InventoryProvider getProvider() { return provider; }
@@ -182,7 +193,7 @@ public class SmartInventory {
             this.closeable = closeable;
             return this;
         }
-        
+
         /**
          * This method is used to configure the frequency at which the {@link InventoryProvider#update(Player, InventoryContents)}
          * method is called. Defaults to 1
@@ -214,7 +225,7 @@ public class SmartInventory {
             this.manager = manager;
             return this;
         }
-        
+
         public String getId() {
             return id;
         }
@@ -264,7 +275,7 @@ public class SmartInventory {
                 throw new IllegalStateException("The provider of the SmartInventory.Builder must be set.");
 
             if(this.manager == null) {          // if it's null, use the default instance
-                this.manager = SmartInvsPlugin.manager();   
+                this.manager = SmartInvsPlugin.manager();
                 if(this.manager == null) {      // if it's still null, throw an exception
                     throw new IllegalStateException("Manager of the SmartInventory.Builder must be set, or SmartInvs should be loaded as a plugin.");
                 }
@@ -288,11 +299,11 @@ public class SmartInventory {
             InventoryOpener opener = this.manager.findOpener(type).orElse(null);
             if(opener == null)
                 throw new IllegalStateException("Cannot find InventoryOpener for type " + type);
-            
+
             SlotPos size = opener.defaultSize(type);
             if(size == null)
                 throw new IllegalStateException(String.format("%s returned null for input InventoryType %s", opener.getClass().getSimpleName(), type));
-            
+
             return size;
         }
 

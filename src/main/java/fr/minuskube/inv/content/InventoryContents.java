@@ -19,6 +19,7 @@ package fr.minuskube.inv.content;
 import com.google.common.base.Preconditions;
 import fr.minuskube.inv.ClickableItem;
 import fr.minuskube.inv.SmartInventory;
+import org.bukkit.Bukkit;
 import fr.minuskube.inv.util.Pattern;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -27,6 +28,10 @@ import org.bukkit.inventory.ItemStack;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * <p>
@@ -585,7 +590,7 @@ public interface InventoryContents {
     class Impl implements InventoryContents{
 
         private final SmartInventory inv;
-        private final Player player;
+        private final UUID player;
 
         private final ClickableItem[][] contents;
 
@@ -595,7 +600,7 @@ public interface InventoryContents {
 
         private Set<SlotPos> editableSlots = new HashSet<SlotPos>();
 
-        public Impl(SmartInventory inv, Player player) {
+        public Impl(SmartInventory inv, UUID player) {
             this.inv = inv;
             this.player = player;
             this.contents = new ClickableItem[inv.getRows()][inv.getColumns()];
@@ -977,10 +982,11 @@ public interface InventoryContents {
         }
 
         private void update(int row, int column, ItemStack item) {
-            if(!inv.getManager().getOpenedPlayers(inv).contains(player))
+            Player currentPlayer = Bukkit.getPlayer(player);
+            if(!inv.getManager().getOpenedPlayers(inv).contains(currentPlayer))
                 return;
 
-            Inventory topInventory = player.getOpenInventory().getTopInventory();
+            Inventory topInventory = currentPlayer.getOpenInventory().getTopInventory();
             topInventory.setItem(inv.getColumns() * row + column, item);
         }
 
