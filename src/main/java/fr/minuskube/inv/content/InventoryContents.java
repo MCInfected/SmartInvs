@@ -727,7 +727,10 @@ public interface InventoryContents {
                 return this;
 
             contents[row][column] = item;
-            update(row, column, item == null ? null : item.getItem(player));
+            Player bukkitPlayer = Bukkit.getPlayer(player);
+            if (bukkitPlayer != null) {
+                update(row, column, item == null ? null : item.getItem(bukkitPlayer));
+            }
             return this;
         }
 
@@ -782,7 +785,7 @@ public interface InventoryContents {
             for(int row = 0; row < contents.length; row++) {
                 for(int column = 0; column < contents[0].length; column++) {
                     if(contents[row][column] != null &&
-                            itemStack.isSimilar(contents[row][column].getItem(this.player))) {
+                            itemStack.isSimilar(contents[row][column].getItem(Bukkit.getPlayer(this.player)))) {
                         return Optional.of(SlotPos.of(row, column));
                     }
                 }
@@ -793,7 +796,7 @@ public interface InventoryContents {
         @Override
         public Optional<SlotPos> findItem(ClickableItem clickableItem) {
             Preconditions.checkNotNull(clickableItem, "The clickable item to look for cannot be null!");
-            return findItem(clickableItem.getItem(this.player));
+            return findItem(clickableItem.getItem(Bukkit.getPlayer(this.player)));
         }
 
         @Override

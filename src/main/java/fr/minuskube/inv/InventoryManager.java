@@ -42,6 +42,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public class InventoryManager {
 
@@ -141,16 +142,16 @@ public class InventoryManager {
     }
 
     protected void scheduleUpdateTask(Player p, SmartInventory inv) {
-    	PlayerInvTask task = new PlayerInvTask(p, inv.getProvider(), contents.get(p));
+    	PlayerInvTask task = new PlayerInvTask(p, inv.getProvider(), contents.get(p.getUniqueId()));
     	task.runTaskTimer(plugin, 1, inv.getUpdateFrequency());
-    	this.updateTasks.put(p, task);
+    	this.updateTasks.put(p.getUniqueId(), task);
     }
 
     protected void cancelUpdateTask(Player p) {
-    	if(updateTasks.containsKey(p)) {
-          int bukkitTaskId = this.updateTasks.get(p).getTaskId();
+    	if(updateTasks.containsKey(p.getUniqueId())) {
+          int bukkitTaskId = this.updateTasks.get(p.getUniqueId()).getTaskId();
           Bukkit.getScheduler().cancelTask(bukkitTaskId);
-          this.updateTasks.remove(p);
+          this.updateTasks.remove(p.getUniqueId());
     	}
     }
 
